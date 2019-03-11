@@ -98,11 +98,11 @@ void calc_summary(int base_threshold, int base_faucet_reward) {
     calc_level_info(summary);
 
     if(i == LEVEL_SIZE - 1) break;
-    if(target->prev != NULL && target->prev->revenue.reduction > target->revenue.reduction) {
-      printf("index = %d, prev reduction = %d, current reduction = %d\n", i, target->prev->revenue.reduction, target->revenue.reduction);
-      is_valid = 0;
-      return;
-    };
+    /* if(target->prev != NULL && target->prev->revenue.reduction > target->revenue.reduction) { */
+    /*   printf("index = %d, prev reduction = %d, current reduction = %d\n", i, target->prev->revenue.reduction, target->revenue.reduction); */
+    /*   is_valid = 0; */
+    /*   return; */
+    /* }; */
 
     level_info *next = malloc(sizeof(level_info));
     next->prev = malloc(sizeof(target));
@@ -138,11 +138,12 @@ void calc_summary(int base_threshold, int base_faucet_reward) {
 void free_summary(summary *summary) {
   level_info *target = summary->level_info;
   level_info *tmp;
-  while(target != NULL) {
-    tmp = target->prev;
-    free(target);
-    target = tmp;
-  }
+  free(target->prev);
+  /* while(target != NULL) { */
+  /*   tmp = target->prev; */
+  /*   free(target); */
+  /*   target = tmp; */
+  /* } */
   free(summary);
 }
 
