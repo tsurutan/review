@@ -1,11 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <stdarg.h>
 #include <string.h>
 #include "csv.h"
-
-#define BUFFER 512
+#include "level_struct.h"
 
 /* 現実値 20190311 過去一ヶ月 */
 const int LEVEL_SIZE = 10; // レベル数
@@ -20,39 +18,15 @@ const int REDUCTION = 55; // 商品の還元値
    https://taiyoproject.com/post-142 */
 const float THRESHOLD_RATE_BY_LEVEL[LEVEL_SIZE] = {0, 1, 2.1, 3.3, 4.6, 6, 7.5, 9.2, 11.1, 13.2};
 
-/* レベル比率・値はLevel2を基準とした倍率を表す
-   参考: 時空物語外伝 イライザのゴールドラッシュ 経験値テーブル(Level10まで)
+/* Faucet比率・値はLevel2を基準とした倍率を表す
+   参考: 時空物語外伝 イライザのゴールドラッシュ 経験値テーブル(Level11まで)
    https://taiyoproject.com/post-142 */
-const float FAUCET_REWARD_RATE_BY_LEVEL[LEVEL_SIZE] = {1, 1.1, 2.1, 3.3, 4.6, 6, 7.5, 9.2, 11.1, 13.2};
+const float FAUCET_REWARD_RATE_BY_LEVEL[LEVEL_SIZE] = {1, 2.1, 3.3, 4.6, 6, 7.5, 9.2, 11.1, 13.2, 15.5};
+
 
 const int IDEAL_REDUCTION = 65; //目標還元値
 const int ALLOWABLE_REDUCTION_ERROR = 1; // 目標還元値との許容誤差
-
-typedef struct _value_count {
-  unsigned long non_invited;
-  unsigned long invited;
-} value_count;
-
-typedef struct _revenue {
-  int reduction;
-  unsigned long expenses;
-  unsigned long sales;
-} revenue;
-
-typedef struct _level_info {
-  value_count people;
-  value_count faucet;
-  unsigned long threshold;
-  unsigned long faucet_reward;
-  revenue revenue;
-  struct _level_info *prev;
-} level_info;
-
-typedef struct _summary {
-  level_info *level_info;
-  revenue revenue;
-} summary;
-
+const int ALLOWABLE_COMP_COUNT = 7; // 全レベルとの比較回数許容値
 
 void calc_summary(int base_threshold, int base_faucet_reward);
 void free_summary();
@@ -62,26 +36,10 @@ int calc_expenses(value_count value_count, int reward);
 long calc_sales(value_count people_count, int threshold);
 int calc_reduction(long expenses, long sales);
 
-// Debug
-void debug_printf(const char *format, ...);
-int is_debug = 0;
-
-int main(int argc, char **argv) {
-  int opt;
-  while((opt = getopt(argc, argv, "dt:")) != -1) {
-    switch(opt) {
-      case 'd':
-        is_debug = 1;
-        break;
-      default:
-        break;
-    }
-  }
-
-  open_csv("output.csv", "w+");
-  write_csv("threshold,faucet,reduction,comp,1,2,3,4,5,6,7,8,9,10\n\0");
-  for(int base_threshold = 1000; base_threshold < 50000; base_threshold+=100) {
-    for(int base_faucet_reward = 1; base_faucet_reward < 1000; base_faucet_reward+=1) {
+int main() {
+  open_level_info_csv();
+  for(int base_threshold = 0; base_threshold < 500000; base_threshold+=1000) {
+    for(int base_faucet_reward = 1; base_faucet_reward < 100; base_faucet_reward+=1) {
       calc_summary(base_threshold, base_faucet_reward);
     }
   }
@@ -89,7 +47,6 @@ int main(int argc, char **argv) {
 }
 
 void calc_summary(int base_threshold, int base_faucet_reward) {
-  int is_valid = 1;
   int comp = 0;
   // init summary
   summary *entity;
@@ -105,9 +62,7 @@ void calc_summary(int base_threshold, int base_faucet_reward) {
     init_level_info(target, i, base_threshold, base_faucet_reward);
     calc_level_info(entity);
 
-    if(target->prev == NULL || target->prev->revenue.reduction <= target->revenue.reduction) {
-      comp += 1;
-    };
+    if(target->prev != NULL && target->prev->revenue.reduction <= target->revenue.reduction) comp += 1;
     if(i == LEVEL_SIZE - 1) break;
 
     level_info *next;
@@ -117,43 +72,11 @@ void calc_summary(int base_threshold, int base_faucet_reward) {
   }
 
   // 還元値と理論値のギャップが許容範囲内か確認
-  if(abs(entity->revenue.reduction - IDEAL_REDUCTION) <= 2) {
-    level_info *target = entity->level_info;
-    char output[BUFFER] = "";
-    char tmp[BUFFER];
-    for(; target; target=target->prev) {
-      strcpy(tmp, output);
-      sprintf(output, ",%d%s", target->revenue.reduction, tmp);
-      /* printf("支出 = %lu\n", target->revenue.expenses); */
-      /* printf("収入 = %lu\n", target->revenue.sales); */
-      printf("還元率 = %d\n\n", target->revenue.reduction);
-    }
-    strcpy(tmp, output);
-    sprintf(output, "%d,%d,%d,%d%s\n", base_threshold, base_faucet_reward, entity->revenue.reduction, comp, tmp);
-    write_csv(output);
-    printf("Total\n");
-    if(is_valid) {
-      /* printf("支出 = %lu\n", entity->revenue.expenses); */
-      /* printf("収入 = %lu\n", entity->revenue.sales); */
-      /* printf("基本Faucet = %d\n", base_faucet_reward); */
-      /* printf("基本閾値 = %d\n", base_threshold); */
-      /* printf("還元値 = %d\n\n", entity->revenue.reduction); */
-    } else {
-      /* printf("is valid = %d\n", is_valid); */
-    }
+  // 全レベルと比較して大になる許容範囲内か確認
+  if(comp >= ALLOWABLE_COMP_COUNT && abs(entity->revenue.reduction - IDEAL_REDUCTION) <= ALLOWABLE_REDUCTION_ERROR) {
+    write_summary_csv(base_threshold, base_faucet_reward, comp, *entity);
   }
   free_summary(entity);
-}
-
-void free_summary(summary *summary) {
-  level_info *target = summary->level_info;
-  level_info *tmp;
-  while(target != NULL) {
-    tmp = target->prev;
-    free(target);
-    target = tmp;
-  }
-  free(summary);
 }
 
 void init_level_info(level_info *level_info, int index, int base_threshold, int base_faucet_reward) {
@@ -175,9 +98,9 @@ void calc_level_info(summary *summary) {
   summary->revenue.expenses += target->revenue.expenses;
   summary->revenue.sales += target->revenue.sales;
   summary->revenue.reduction = calc_reduction(summary->revenue.expenses, summary->revenue.sales);
-  debug_printf("summary->level_info expenses = %lu\n", summary->revenue.expenses);
 }
 
+// 還元率の計算
 int calc_reduction(long expenses, long sales) {
   if(sales == 0) {
     return 0;
@@ -186,18 +109,23 @@ int calc_reduction(long expenses, long sales) {
   }
 }
 
+// 支出の計算
 int calc_expenses(value_count value_count, int reward) {
   return (value_count.non_invited + value_count.invited * 1.1) * reward;
 }
 
+// 売上の計算
 long calc_sales(value_count people_count, int threshold) {
   return ((people_count.invited + people_count.non_invited) * threshold * 100) / REDUCTION;
 }
 
-void debug_printf(const char *format, ...) {
-  if(!is_debug) return;
-  va_list ap;
-  va_start(ap, format);
-  vprintf(format, ap);
-  va_end(ap);
+void free_summary(summary *summary) {
+  level_info *target = summary->level_info;
+  level_info *tmp;
+  while(target != NULL) {
+    tmp = target->prev;
+    free(target);
+    target = tmp;
+  }
+  free(summary);
 }
