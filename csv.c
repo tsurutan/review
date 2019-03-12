@@ -12,8 +12,16 @@ void concat_list(int list[LEVEL_SIZE], char output[BUFFER]) {
   sprintf(output, "%d,%d,%d,%d,%d,%d,%d,%d,%d,%d", list[0], list[1], list[2], list[3], list[4], list[5], list[6], list[7], list[8], list[9]);
 }
 
+void read_file() {
+  char output[BUFFER];
+  while(fgets(output, BUFFER, f) != NULL) {
+    puts(output);
+  }
+}
+
 void open_csv(char *file_path, char *opt) {
   f = fopen(file_path, opt);
+  read_file();
 }
 
 void open_level_info_csv() {
