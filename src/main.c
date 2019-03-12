@@ -7,10 +7,6 @@
 
 /* 現実値 20190311 過去一ヶ月 */
 const int LEVEL_SIZE = 10; // レベル数
-const int ENTIRE_PEOPLE_COUNT_BY_LEVEL[LEVEL_SIZE] = {4135, 174, 299, 58, 34, 25, 23, 9, 4, 1}; // レベルごと全体人数
-const int INVITED_PEOPLE_COUNT_BY_LEVEL[LEVEL_SIZE] = {2447, 120, 217, 43, 24, 19, 17, 5, 4, 0}; // レベルごと被招待者人数
-const int ENTIRE_FAUCET_COUNT_BY_LEVEL[LEVEL_SIZE] = {141644, 31255, 73496, 14274, 10160, 7806, 5890, 3576, 1959, 498}; // レベルごとFaucet回数
-const int INVITED_FAUCET_COUNT_BY_LEVEL[LEVEL_SIZE] = {103175, 23654, 52403, 10637, 8371, 5075, 3666, 2478, 1959, 0}; // レベルごと被招待者Faucet回数
 const int REDUCTION = 55; // 商品の還元値
 
 /* レベル比率・値はLevel2を基準とした倍率を表す
@@ -25,8 +21,8 @@ const float FAUCET_REWARD_RATE_BY_LEVEL[LEVEL_SIZE] = {1, 2.1, 3.3, 4.6, 6, 7.5,
 
 
 const int IDEAL_REDUCTION = 65; //目標還元値
-const int ALLOWABLE_REDUCTION_ERROR = 1; // 目標還元値との許容誤差
-const int ALLOWABLE_COMP_COUNT = 7; // 全レベルとの比較回数許容値
+const int ALLOWABLE_REDUCTION_ERROR = 2; // 目標還元値との許容誤差
+const int ALLOWABLE_COMP_COUNT = 8; // 全レベルとの比較回数許容値
 
 void calc_summary(int base_threshold, int base_faucet_reward);
 void free_summary();
@@ -38,7 +34,7 @@ int calc_reduction(long expenses, long sales);
 
 int main() {
   open_level_info_csv();
-  for(int base_threshold = 0; base_threshold < 500000; base_threshold+=1000) {
+  for(int base_threshold = 1000; base_threshold < 500000; base_threshold+=1000) {
     for(int base_faucet_reward = 1; base_faucet_reward < 100; base_faucet_reward+=1) {
       calc_summary(base_threshold, base_faucet_reward);
     }
@@ -80,12 +76,21 @@ void calc_summary(int base_threshold, int base_faucet_reward) {
 }
 
 void init_level_info(LevelInfo *level_info, int index, int base_threshold, int base_faucet_reward) {
-  level_info->people.invited = INVITED_PEOPLE_COUNT_BY_LEVEL[index];
-  level_info->people.non_invited = ENTIRE_PEOPLE_COUNT_BY_LEVEL[index] - level_info->people.invited;
-  level_info->faucet.invited = INVITED_FAUCET_COUNT_BY_LEVEL[index];
-  level_info->faucet.non_invited = ENTIRE_FAUCET_COUNT_BY_LEVEL[index] - level_info->faucet.invited;
+  unsigned long threshold = base_threshold * THRESHOLD_RATE_BY_LEVEL[index];
+  unsigned long next_threshold;
+  if(index == LEVEL_SIZE - 1) {
+    next_threshold = 0;
+  } else {
+    next_threshold = base_threshold * THRESHOLD_RATE_BY_LEVEL[index + 1];
+  }
+  level_info->threshold = threshold;
+  level_info->people.all = calc_people_all_count_sum(threshold, next_threshold);
+  level_info->people.invited = calc_people_invited_count_sum(threshold, next_threshold);
+  level_info->people.non_invited = level_info->people.all - level_info->people.invited;
+  level_info->faucet.all = calc_fc_all_count_sum(threshold, next_threshold);
+  level_info->faucet.invited = calc_fc_invited_count_sum(threshold, next_threshold);
+  level_info->faucet.non_invited = level_info->faucet.all - level_info->faucet.invited;
   level_info->faucet_reward = base_faucet_reward * FAUCET_REWARD_RATE_BY_LEVEL[index];
-  level_info->threshold = base_threshold * THRESHOLD_RATE_BY_LEVEL[index];
 }
 
 void calc_level_info(Summary *summary) {

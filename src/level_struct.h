@@ -4,6 +4,7 @@
 typedef struct _ValueCount {
   unsigned long non_invited;
   unsigned long invited;
+  unsigned long all;
 } ValueCount;
 
 typedef struct _Revenue {
@@ -25,5 +26,11 @@ typedef struct _Summary {
   LevelInfo *level_info;
   Revenue revenue;
 } Summary;
+
+typedef struct _Data {
+  unsigned long lower_limit;
+  unsigned long upper_limit;
+  unsigned long count;
+} Data;
 
 #endif
