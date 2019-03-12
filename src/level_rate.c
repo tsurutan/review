@@ -30,10 +30,10 @@ const int ALLOWABLE_COMP_COUNT = 7; // 全レベルとの比較回数許容値
 
 void calc_summary(int base_threshold, int base_faucet_reward);
 void free_summary();
-void init_level_info(level_info *level_info, int index, int base_threshold, int base_faucet_reward);
-void calc_level_info(summary *summary);
-int calc_expenses(value_count value_count, int reward);
-long calc_sales(value_count people_count, int threshold);
+void init_level_info(LevelInfo *level_info, int index, int base_threshold, int base_faucet_reward);
+void calc_level_info(Summary *summary);
+int calc_expenses(ValueCount value_count, int reward);
+long calc_sales(ValueCount people_count, int threshold);
 int calc_reduction(long expenses, long sales);
 
 int main() {
@@ -49,24 +49,24 @@ int main() {
 void calc_summary(int base_threshold, int base_faucet_reward) {
   int comp = 0;
   // init summary
-  summary *entity;
-  entity = (summary*)malloc(sizeof(summary));
+  Summary *entity;
+  entity = (Summary*)malloc(sizeof(Summary));
   entity->revenue.expenses = 0;
   entity->revenue.sales = 0;
   entity->revenue.reduction = 0;
-  entity->level_info = (level_info*)malloc(sizeof(level_info));
+  entity->level_info = (LevelInfo*)malloc(sizeof(LevelInfo));
   entity->level_info->prev = NULL;
 
   for(int i = 0; i < LEVEL_SIZE; i++) {
-    level_info *target = entity->level_info;
+    LevelInfo *target = entity->level_info;
     init_level_info(target, i, base_threshold, base_faucet_reward);
     calc_level_info(entity);
 
     if(target->prev != NULL && target->prev->revenue.reduction <= target->revenue.reduction) comp += 1;
     if(i == LEVEL_SIZE - 1) break;
 
-    level_info *next;
-    next = (level_info*)malloc(sizeof(level_info));
+    LevelInfo *next;
+    next = (LevelInfo*)malloc(sizeof(LevelInfo));
     next->prev = target;
     entity->level_info = next;
   }
@@ -79,7 +79,7 @@ void calc_summary(int base_threshold, int base_faucet_reward) {
   free_summary(entity);
 }
 
-void init_level_info(level_info *level_info, int index, int base_threshold, int base_faucet_reward) {
+void init_level_info(LevelInfo *level_info, int index, int base_threshold, int base_faucet_reward) {
   level_info->people.invited = INVITED_PEOPLE_COUNT_BY_LEVEL[index];
   level_info->people.non_invited = ENTIRE_PEOPLE_COUNT_BY_LEVEL[index] - level_info->people.invited;
   level_info->faucet.invited = INVITED_FAUCET_COUNT_BY_LEVEL[index];
@@ -88,8 +88,8 @@ void init_level_info(level_info *level_info, int index, int base_threshold, int 
   level_info->threshold = base_threshold * THRESHOLD_RATE_BY_LEVEL[index];
 }
 
-void calc_level_info(summary *summary) {
-  level_info *target = summary->level_info;
+void calc_level_info(Summary *summary) {
+  LevelInfo *target = summary->level_info;
   target->revenue.expenses = calc_expenses(target->people, target->threshold);
   target->revenue.expenses += calc_expenses(target->faucet, target->faucet_reward);
   target->revenue.sales = calc_sales(target->people, target->threshold);
@@ -110,18 +110,18 @@ int calc_reduction(long expenses, long sales) {
 }
 
 // 支出の計算
-int calc_expenses(value_count value_count, int reward) {
+int calc_expenses(ValueCount value_count, int reward) {
   return (value_count.non_invited + value_count.invited * 1.1) * reward;
 }
 
 // 売上の計算
-long calc_sales(value_count people_count, int threshold) {
+long calc_sales(ValueCount people_count, int threshold) {
   return ((people_count.invited + people_count.non_invited) * threshold * 100) / REDUCTION;
 }
 
-void free_summary(summary *summary) {
-  level_info *target = summary->level_info;
-  level_info *tmp;
+void free_summary(Summary *summary) {
+  LevelInfo *target = summary->level_info;
+  LevelInfo *tmp;
   while(target != NULL) {
     tmp = target->prev;
     free(target);

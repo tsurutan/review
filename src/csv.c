@@ -46,7 +46,7 @@ void write_csv(char *buf) {
   fwrite(buf, strlen(buf), 1 , f);
 }
 
-void write_summary_csv(int threshold, int faucet_reward, int comp, summary entity) {
+void write_summary_csv(int threshold, int faucet_reward, int comp, Summary entity) {
   char output[BUFFER] = "";
   int threshold_list[LEVEL_SIZE];
   int faucet_reward_list[LEVEL_SIZE];
@@ -55,7 +55,7 @@ void write_summary_csv(int threshold, int faucet_reward, int comp, summary entit
   char threshold_val[BUFFER];
   char faucet_reward_val[BUFFER];
   char reduction_val[BUFFER];
-  level_info *target = entity.level_info;
+  LevelInfo *target = entity.level_info;
 
   for(int index = LEVEL_SIZE - 1; target; target=target->prev, index--) {
     threshold_list[index] = target->threshold;

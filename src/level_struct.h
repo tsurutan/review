@@ -1,29 +1,29 @@
 #ifndef LEVEL_STRUCT
 #define LEVEL_STRUCT
 
-typedef struct _value_count {
+typedef struct _ValueCount {
   unsigned long non_invited;
   unsigned long invited;
-} value_count;
+} ValueCount;
 
-typedef struct _revenue {
+typedef struct _Revenue {
   int reduction;
   unsigned long expenses;
   unsigned long sales;
-} revenue;
+} Revenue;
 
-typedef struct _level_info {
-  value_count people;
-  value_count faucet;
+typedef struct _LevelInfo {
+  ValueCount people;
+  ValueCount faucet;
   unsigned long threshold;
   unsigned long faucet_reward;
-  revenue revenue;
-  struct _level_info *prev;
-} level_info;
+  Revenue revenue;
+  struct _LevelInfo *prev;
+} LevelInfo;
 
-typedef struct _summary {
-  level_info *level_info;
-  revenue revenue;
-} summary;
+typedef struct _Summary {
+  LevelInfo *level_info;
+  Revenue revenue;
+} Summary;
 
 #endif
