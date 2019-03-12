@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <stdarg.h>
 #include <string.h>
+#include "csv.h"
 
 #define BUFFER 512
 
@@ -53,7 +54,7 @@ typedef struct _summary {
 } summary;
 
 
-void calc_summary(FILE *f, int base_threshold, int base_faucet_reward);
+void calc_summary(int base_threshold, int base_faucet_reward);
 void free_summary();
 void init_level_info(level_info *level_info, int index, int base_threshold, int base_faucet_reward);
 void calc_level_info(summary *summary);
@@ -67,7 +68,6 @@ int is_debug = 0;
 
 int main(int argc, char **argv) {
   int opt;
-  FILE *f;
   while((opt = getopt(argc, argv, "dt:")) != -1) {
     switch(opt) {
       case 'd':
@@ -78,18 +78,17 @@ int main(int argc, char **argv) {
     }
   }
 
-  f = fopen("output.csv", "w+");
-  char *header = "threshold,faucet,reduction,comp,1,2,3,4,5,6,7,8,9,10\n\0";
-  fwrite(header, strlen(header), 1 , f);
+  open_csv("output.csv", "w+");
+  write_csv("threshold,faucet,reduction,comp,1,2,3,4,5,6,7,8,9,10\n\0");
   for(int base_threshold = 1000; base_threshold < 50000; base_threshold+=100) {
     for(int base_faucet_reward = 1; base_faucet_reward < 1000; base_faucet_reward+=1) {
-      calc_summary(f, base_threshold, base_faucet_reward);
+      calc_summary(base_threshold, base_faucet_reward);
     }
   }
-  fclose(f);
+  close_csv();
 }
 
-void calc_summary(FILE *f, int base_threshold, int base_faucet_reward) {
+void calc_summary(int base_threshold, int base_faucet_reward) {
   int is_valid = 1;
   int comp = 0;
   // init summary
@@ -131,10 +130,9 @@ void calc_summary(FILE *f, int base_threshold, int base_faucet_reward) {
     }
     strcpy(tmp, output);
     sprintf(output, "%d,%d,%d,%d%s\n", base_threshold, base_faucet_reward, entity->revenue.reduction, comp, tmp);
-    fwrite(output, strlen(output), 1 , f);
+    write_csv(output);
     printf("Total\n");
     if(is_valid) {
-      printf("Total\n");
       /* printf("支出 = %lu\n", entity->revenue.expenses); */
       /* printf("収入 = %lu\n", entity->revenue.sales); */
       /* printf("基本Faucet = %d\n", base_faucet_reward); */
