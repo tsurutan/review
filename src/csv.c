@@ -25,7 +25,7 @@ void open_csv(char *file_path, char *opt) {
 }
 
 void open_level_info_csv() {
-  open_csv("output.csv", "w+");
+  open_csv("./output/result.csv", "w+");
   write_csv("Base閾値,Base報酬,総合還元率,前レベルより還元率が大きい回数,1還元率,2還元率,3還元率,4還元率,5還元率,6還元率,7還元率,8還元率,9還元率,10還元率,1閾値,2閾値,3閾値,4閾値,5閾値,6閾値,7閾値,8閾値,9閾値,10閾値,1報酬,2報酬,3報酬,4報酬,5報酬,6報酬,7報酬,8報酬,9報酬,10報酬\n\0");
 }
 
