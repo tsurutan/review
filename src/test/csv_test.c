@@ -4,6 +4,6 @@
 
 int main() {
   int i = 10;
-  open_csv("test.csv", "w+");
+  open_csv("./src/test/test.csv", "r");
   assert(i == 10);
 }

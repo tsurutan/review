@@ -14,8 +14,21 @@ void concat_list(int list[LEVEL_SIZE], char output[BUFFER]) {
 
 void read_file() {
   char output[BUFFER];
+  char *ptr;
+  int is_header = 1;
   while(fgets(output, BUFFER, f) != NULL) {
-    puts(output);
+    if(is_header) {
+      is_header = 0;
+    } else {
+      ptr = strtok(output, ",");
+      printf("test = %s\n", ptr);
+      while(ptr != NULL) {
+        ptr = strtok(NULL, ",");
+        if(ptr != NULL) {
+          printf("test = %s\n", ptr);
+        }
+      }
+    }
   }
 }
 
